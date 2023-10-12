@@ -1,3 +1,8 @@
+// TYPE CHECKS?
+// BEST WAY OF ERROR HANDLING?
+// WHAT IF REQ PARAM ID DOESN'T MATCH THAT OF REQ BODY?
+	// i mean you could just do bad request for that. it's nonsensical, right?
+
 const express = require("express");
 
 const app = express();
@@ -92,7 +97,9 @@ app.put("/movies/:id", (req, res) => {
 	const movieCheck = newMovie.id && newMovie.title && newMovie.director && newMovie.year;
 	const index = movies.findIndex((movie) => movie.id == id);
 
-	if(index > -1 && movieCheck){
+	if(id != newMovie.id){
+		res.status(404).send("Your request's param's id doesn't match the id inside your request body. Try again!");
+	}else if(index > -1 && movieCheck){
 		movies[index] = newMovie;
 		res.send("Changed movie successfully!");
 	}else if(index > -1 && !movieCheck){
