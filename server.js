@@ -17,23 +17,29 @@ app.get("/movies", (req, res) => {
 })
 
 app.get("/movies/:id", (req, res) => {
-	// Tried to use try-catch here, but trying a id that doesn't exist doesn't cause an error. it's still 200 status
+	// Tried to use try-catch here, but getting a movie with id that doesn't exist doesn't cause an error. it's still 200 status
+	const id = req.params.id;
+	// movie is the matching movie object or undefined
+	const movie = movies.find((movie) => movie.id == id);
 	if(movies.find((movie) => movie.id == req.params.id)){
 		const foundMovie = movies.filter((movie) => movie.id == req.params.id);
 		res.send(foundMovie);
 	}else{
-		res.send("No movie at this id");
+		// 404: NOT FOUND
+		res.status(404).send("No movie at this id");
 	}
 })
 
 app.delete("/movies/:id", (req, res) => {
-	if(movies.find((movie) => movie.id == req.params.id)){
+	const id = req.params.id;
+	const movie = movies.find((movie) => movie.id == id);
+	if(movie){
 		const id = req.params.id;
 		const index = movies.findIndex((movie) => (movie.id == id));
 		movies.splice(index, 1);
 		res.send("Movie deleted!");
 	}else{
-		res.send("No movie to be deleted at this id");
+		res.status(404).send("No movie to be deleted at this id");
 	}
 })
 
@@ -41,17 +47,62 @@ app.delete("/movies/:id", (req, res) => {
 app.get("/search", (req, res) => {
 	const title = req.query.title.toLowerCase();
 	const foundMovies = movies.filter((movie) => movie.title.toLowerCase().includes(title));
+
 	if(foundMovies.length != 0){
 		res.send(foundMovies);
 	}else{
-		res.send("No movies by that title, try again!");
+		res.status(404).send("No movies by that title, try again!");
 	}
 })
 
-// TODO: post
+// post
+// additional line, not sure exactly what this does...
+app.use(express.json());
 
-// TODO put
+app.post("/movies", (req, res) => {
+	// TODO: probably should do type checks
+	const newMovie = req.body;
+	const newId = newMovie.id;
+	// either an object or undefined
+	const existingMovie = movies.find((movie) => movie.id == newId);
+	// check to see if newMovie has keys we expect / isn't malformed
+	const movieCheck = newMovie.id && newMovie.title && newMovie.director && newMovie.year;
+	if (existingMovie) { // movie at that id already exists
+		if (movieCheck) { // check req body
+		  res.status(400).send("Can't add new movie. Object with this id already exists.");
+		} else {
+		  res.status(400).send("Can't add new movie. Object with this id already exists. Request body is also malformed.");
+		}
+	} else {
+		if (movieCheck) {
+		  movies.push(newMovie);
+		  res.send("New movie added!");
+		} else {
+		  res.status(400).send("Your request body is malformed.");
+		}
+	}
+})
 
+// put
+// QUESTION: what if the req's param id doesn't match the id in the req body?
+
+app.put("/movies/:id", (req, res) => {
+	const id = req.params.id;
+	const newMovie = req.body;
+	const movieCheck = newMovie.id && newMovie.title && newMovie.director && newMovie.year;
+	const index = movies.findIndex((movie) => movie.id == id);
+
+	if(index > -1 && movieCheck){
+		movies[index] = newMovie;
+		res.send("Changed movie successfully!");
+	}else if(index > -1 && !movieCheck){
+		res.status(400).send("Request body is malformed");
+	}else if(index == -1 && movieCheck){
+		res.status(404).send("No movie of that id to change");
+	}else if(index == -1 && !movieCheck){
+		res.status(400).send("No movie of that id to change. Request body also malformed");
+	}
+})
 app.listen(3000, () => {
 	console.log("server started at port 3000");
 })
